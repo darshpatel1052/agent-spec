@@ -75,6 +75,7 @@ describe("Mastra Agent Spec exporter", () => {
         modelId: "gpt-4o-mini",
       }),
       systemPrompt: "You answer support questions.",
+      humanInTheLoop: false,
       tools: [
         createServerTool({
           name: "lookup",
@@ -119,6 +120,7 @@ describe("Mastra Agent Spec exporter", () => {
         name: "reviewer",
         llmConfig,
         systemPrompt: "Review.",
+        humanInTheLoop: false,
       }),
     });
     const end = createEndNode({ name: "end" });
@@ -183,6 +185,7 @@ describe("Mastra Agent Spec exporter", () => {
         componentType: "OpenAiConfig",
         modelId: "gpt-4o-mini",
       },
+      humanInTheLoop: false,
     });
     expect(exported.tools).toHaveLength(1);
     expect(exported.tools[0]).toMatchObject({
@@ -286,6 +289,17 @@ describe("Mastra Agent Spec exporter", () => {
         model: "openai/gpt-4o-mini",
       }),
     ).toThrow(UnsupportedMastraExportError);
+  });
+
+  it("refuses to drop unsupported native Mastra agent fields", () => {
+    expect(() =>
+      new AgentSpecExporter().toAgent({
+        name: "Stateful Agent",
+        instructions: "Remember prior messages.",
+        model: "openai/gpt-4o-mini",
+        memory: { enabled: true },
+      }),
+    ).toThrow(/unsupported fields: memory/);
   });
 
   it("refuses to export opaque workflows without Agent Spec provenance", () => {

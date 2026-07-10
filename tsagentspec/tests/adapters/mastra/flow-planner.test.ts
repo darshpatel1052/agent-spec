@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   createBranchingNode,
   createControlFlowEdge,
+  createDataFlowEdge,
   createEndNode,
   createFlow,
   createLlmNode,
   createOpenAiConfig,
   createStartNode,
+  stringProperty,
 } from "../../../src/index.js";
 import {
   planLinearMastraFlow,
@@ -93,5 +95,39 @@ describe("Mastra linear flow planner", () => {
     expect(() => planLinearMastraFlow(flow)).toThrow(
       UnsupportedMastraFlowShapeError,
     );
+  });
+
+  it("rejects data-flow edges instead of dropping their mappings", () => {
+    const start = createStartNode({
+      name: "start",
+      outputs: [stringProperty({ title: "topic" })],
+    });
+    const llm = createLlmNode({
+      name: "draft",
+      llmConfig,
+      promptTemplate: "Draft a reply.",
+      inputs: [stringProperty({ title: "topic" })],
+    });
+    const end = createEndNode({ name: "end" });
+    const flow = createFlow({
+      name: "linear-with-data",
+      startNode: start,
+      nodes: [start, llm, end],
+      controlFlowConnections: [
+        createControlFlowEdge({ name: "start_to_draft", fromNode: start, toNode: llm }),
+        createControlFlowEdge({ name: "draft_to_end", fromNode: llm, toNode: end }),
+      ],
+      dataFlowConnections: [
+        createDataFlowEdge({
+          name: "topic_to_draft",
+          sourceNode: start,
+          sourceOutput: "topic",
+          destinationNode: llm,
+          destinationInput: "topic",
+        }),
+      ],
+    });
+
+    expect(() => planLinearMastraFlow(flow)).toThrow(/data flow edges/);
   });
 });

@@ -24,6 +24,12 @@ export const planLinearMastraFlow = (flow: Flow): MastraLinearFlowPlan => {
   const nodes = flow.nodes as Node[];
   const startNodeRef = flow.startNode as Node;
 
+  if ((flow.dataFlowConnections?.length ?? 0) > 0) {
+    throw new UnsupportedMastraFlowShapeError(
+      "Linear Mastra flow conversion does not support Agent Spec data flow edges.",
+    );
+  }
+
   for (const node of nodes) {
     if (!SUPPORTED_NODE_TYPES.has(node.componentType)) {
       throw new UnsupportedMastraFlowNodeError(node.componentType);

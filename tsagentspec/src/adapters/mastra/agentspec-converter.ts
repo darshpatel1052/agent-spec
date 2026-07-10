@@ -46,6 +46,19 @@ export type MastraToAgentSpecConversionOptions = {
   includeModelApiKey?: boolean;
 };
 
+const NATIVE_AGENT_EXPORT_FIELDS = new Set([
+  "id",
+  "name",
+  "description",
+  "metadata",
+  "instructions",
+  "systemPrompt",
+  "model",
+  "llmConfig",
+  "tools",
+]);
+
+/** Converts supported Mastra runtime configuration into Agent Spec components. */
 export class MastraToAgentSpecConverter {
   private readonly options: MastraToAgentSpecConversionOptions;
 
@@ -53,6 +66,7 @@ export class MastraToAgentSpecConverter {
     this.options = options;
   }
 
+  /** Convert a supported Mastra object into an Agent Spec Agent or Flow. */
   convert(input: unknown): AgentSpecExportedComponent {
     const agent = this.tryExportAgent(input);
     if (agent) {
@@ -69,6 +83,7 @@ export class MastraToAgentSpecConverter {
     );
   }
 
+  /** Convert a supported Mastra agent into an Agent Spec Agent. */
   toAgent(input: unknown): Agent {
     const agent = this.tryExportAgent(input);
     if (!agent) {
@@ -79,6 +94,7 @@ export class MastraToAgentSpecConverter {
     return agent;
   }
 
+  /** Convert an adapter-created Mastra workflow into an Agent Spec Flow. */
   toFlow(input: unknown): Flow {
     const flow = this.tryExportFlow(input);
     if (!flow) {
@@ -113,6 +129,7 @@ export class MastraToAgentSpecConverter {
 
   private exportNativeAgent(config: Record<string, unknown>): Agent {
     const name = requiredString(config["name"], "native Mastra agent name");
+    assertSupportedNativeAgentFields(config, name);
     const instructions = requiredString(
       config["instructions"] ?? config["systemPrompt"],
       `native Mastra agent '${name}' instructions`,
@@ -134,6 +151,7 @@ export class MastraToAgentSpecConverter {
       llmConfig: model,
       systemPrompt: instructions,
       tools,
+      humanInTheLoop: false,
     });
   }
 
@@ -354,6 +372,21 @@ export class MastraToAgentSpecConverter {
     });
   }
 }
+
+const assertSupportedNativeAgentFields = (
+  config: Record<string, unknown>,
+  agentName: string,
+): void => {
+  const unsupportedFields = Object.keys(config)
+    .filter((field) => config[field] !== undefined && !NATIVE_AGENT_EXPORT_FIELDS.has(field))
+    .sort();
+
+  if (unsupportedFields.length > 0) {
+    throw new UnsupportedMastraExportError(
+      `Cannot export native Mastra agent '${agentName}' with unsupported fields: ${unsupportedFields.join(", ")}.`,
+    );
+  }
+};
 
 const findAgentSpecAgent = (input: unknown): Agent | undefined => {
   const direct = parseAgent(input);

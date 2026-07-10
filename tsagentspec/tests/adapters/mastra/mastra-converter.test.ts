@@ -51,6 +51,7 @@ describe("Agent Spec to Mastra converter", () => {
       }),
       systemPrompt: "You answer support questions.",
       tools: [tool],
+      humanInTheLoop: false,
     });
 
     const converted = convertAgentSpecToMastraAgent(agent, {
@@ -91,6 +92,7 @@ describe("Agent Spec to Mastra converter", () => {
         modelId: "gpt-4o-mini",
       }),
       systemPrompt: "Hello",
+      humanInTheLoop: false,
       tools: [
         createServerTool({ id: "tool-1", name: "lookup" }),
         createServerTool({ id: "tool-2", name: "lookup" }),
@@ -115,6 +117,7 @@ describe("Agent Spec to Mastra converter", () => {
         modelId: "gpt-4o-mini",
       }),
       systemPrompt: "Hello",
+      humanInTheLoop: false,
       tools: [createClientTool({ name: "client-input" })],
     });
 
@@ -133,6 +136,7 @@ describe("Agent Spec to Mastra converter", () => {
         modelId: "gpt-4o-mini",
       }),
       systemPrompt: "Hello",
+      humanInTheLoop: false,
       toolboxes: [
         createMCPToolBox({
           name: "remote-tools",
@@ -150,5 +154,61 @@ describe("Agent Spec to Mastra converter", () => {
         runtime: fakeRuntime,
       }),
     ).toThrow(UnsupportedMastraAgentFeatureError);
+  });
+
+  it("fails explicitly when agent-level human-in-the-loop is enabled", () => {
+    const agent = createAgent({
+      name: "agent",
+      llmConfig: createOpenAiConfig({
+        name: "llm",
+        modelId: "gpt-4o-mini",
+      }),
+      systemPrompt: "Hello",
+      humanInTheLoop: true,
+    });
+
+    expect(() =>
+      convertAgentSpecToMastraAgent(agent, {
+        runtime: fakeRuntime,
+      }),
+    ).toThrow(/Agent\.humanInTheLoop/);
+  });
+
+  it("fails explicitly when agent-level inputs would be dropped", () => {
+    const agent = createAgent({
+      name: "agent",
+      llmConfig: createOpenAiConfig({
+        name: "llm",
+        modelId: "gpt-4o-mini",
+      }),
+      systemPrompt: "Answer for the configured audience.",
+      humanInTheLoop: false,
+      inputs: [stringProperty({ title: "audience" })],
+    });
+
+    expect(() =>
+      convertAgentSpecToMastraAgent(agent, {
+        runtime: fakeRuntime,
+      }),
+    ).toThrow(/Agent\.inputs/);
+  });
+
+  it("fails explicitly when agent-level outputs would be dropped", () => {
+    const agent = createAgent({
+      name: "agent",
+      llmConfig: createOpenAiConfig({
+        name: "llm",
+        modelId: "gpt-4o-mini",
+      }),
+      systemPrompt: "Answer the user.",
+      humanInTheLoop: false,
+      outputs: [stringProperty({ title: "answer" })],
+    });
+
+    expect(() =>
+      convertAgentSpecToMastraAgent(agent, {
+        runtime: fakeRuntime,
+      }),
+    ).toThrow(/Agent\.outputs/);
   });
 });

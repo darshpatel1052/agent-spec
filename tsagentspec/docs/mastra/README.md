@@ -49,6 +49,7 @@ The loader supports Agent Spec `Agent` components with:
 - `OpenAiConfig`, `OpenAiCompatibleConfig`, `OllamaConfig`, and `VllmConfig`
 - `ServerTool` through a user-supplied `toolRegistry`
 - tool input and output schemas as JSON Schema object descriptors
+- `humanInTheLoop` set to `false`
 
 For disaggregated Agent Spec configs, load referenced components first and pass
 the returned registry into the main load:
@@ -64,7 +65,8 @@ const mastraAgent = loader.loadYaml(mainYaml, {
 ```
 
 The loader rejects unsupported Agent features explicitly instead of silently
-dropping them.
+dropping them. Agent-level `inputs`, `outputs`, toolboxes, transforms, and
+agent-level human-in-the-loop behavior are not currently mapped.
 
 ## Runtime Binding
 
@@ -168,7 +170,9 @@ must expose serializable fields such as:
 
 Dynamic runtime functions, Zod-only schemas, model fallback arrays, and opaque
 native workflow objects are rejected unless the caller provides an explicit
-export hook.
+export hook. Native agent fields outside the documented serializable subset are
+also rejected so runtime behavior such as memory or processors is not silently
+dropped.
 
 ## Export Hooks
 
@@ -223,6 +227,12 @@ The bundle includes:
 - `mastraConfig`: `{ storage }` for a Mastra app
 - `memoryConfig`: `{ storage }` for Mastra memory
 
+For PostgreSQL, the adapter places the Agent Spec username, password, and TLS
+settings into the `connectionString` consumed by `PostgresStore`. PostgreSQL
+`allow` and `prefer` SSL modes are rejected because Mastra cannot preserve their
+connection fallback semantics. CRL file configuration is also rejected until
+the Mastra PostgreSQL provider consumes it.
+
 `OracleDatabaseDatastore` remains an Agent Spec core datastore type, but this
 adapter does not map it to a Mastra storage package until Mastra publishes an
 official OracleDB storage provider.
@@ -238,10 +248,10 @@ Supported linear shape:
 StartNode -> LlmNode/ToolNode/AgentNode... -> EndNode
 ```
 
-The converter rejects branching, cycles, disconnected nodes, unsupported node
-types, and ambiguous execution paths. This keeps workflow conversion exact
-rather than turning a complex Agent Spec graph into an approximate Mastra
-workflow.
+The converter rejects data-flow edges, branching, cycles, disconnected nodes,
+unsupported node types, and ambiguous execution paths. This keeps workflow
+conversion exact rather than turning a complex Agent Spec graph into an
+approximate Mastra workflow.
 
 LLM and Agent nodes require caller-supplied executor registries because prompt
 execution and agent handoff are runtime behavior:
@@ -265,9 +275,10 @@ Current limitations include:
 
 - non-server local tool execution modes that do not map cleanly to Mastra tools
 - MCP toolbox runtime loading into Mastra MCP clients
+- agent-level human-in-the-loop behavior and Agent input/output contracts
 - Agent Spec swarm, manager-worker, specialized-agent, remote-agent, and A2A
   roots
-- advanced non-linear flow graphs
+- data-flow edges and advanced non-linear flow graphs
 - framework-specific vector and semantic-memory semantics
 
 ## Examples

@@ -14,6 +14,7 @@ import type {
 } from "./types.js";
 import { defaultMastraToolResolver } from "./tool.js";
 
+/** Converts Agent Spec Agent components into Mastra runtime agents. */
 export class AgentSpecToMastraConverter<TAgent = unknown, TTool = unknown> {
   private readonly runtime: MastraRuntimeAdapter<TAgent, TTool>;
   private readonly modelResolver: MastraModelResolver;
@@ -29,6 +30,7 @@ export class AgentSpecToMastraConverter<TAgent = unknown, TTool = unknown> {
     this.toolRegistry = options.toolRegistry;
   }
 
+  /** Convert an Agent Spec Agent into a Mastra runtime agent. */
   convert(agent: Agent): TAgent {
     assertSupportedAgent(agent);
 
@@ -70,6 +72,18 @@ export const convertAgentSpecToMastraAgent = <TAgent = unknown, TTool = unknown>
 const assertSupportedAgent = (agent: Agent): void => {
   // These features need explicit Mastra mappings rather than being dropped
   // during conversion.
+  if (agent.humanInTheLoop) {
+    throw new UnsupportedMastraAgentFeatureError("Agent.humanInTheLoop");
+  }
+
+  if ((agent.inputs?.length ?? 0) > 0) {
+    throw new UnsupportedMastraAgentFeatureError("Agent.inputs");
+  }
+
+  if ((agent.outputs?.length ?? 0) > 0) {
+    throw new UnsupportedMastraAgentFeatureError("Agent.outputs");
+  }
+
   if (agent.toolboxes.length > 0) {
     throw new UnsupportedMastraAgentFeatureError("Agent.toolboxes");
   }

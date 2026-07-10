@@ -53,6 +53,7 @@ const agent = createAgent({
   llmConfig,
   systemPrompt: "Use the subtraction tool when the user asks for subtraction.",
   tools: [subtractionTool],
+  humanInTheLoop: false,
 });
 
 const yaml = new AgentSpecSerializer().toYaml(agent) as string;

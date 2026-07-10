@@ -49,6 +49,7 @@ describe("AgentSpecLoader", () => {
         url: "http://localhost:8000/v1",
       }),
       systemPrompt: "Use the lookup tool.",
+      humanInTheLoop: false,
       tools: [
         createServerTool({
           id: "lookup-tool",
@@ -116,6 +117,7 @@ describe("AgentSpecLoader", () => {
         url: "http://localhost:8000/v1",
       }),
       systemPrompt: "You answer.",
+      humanInTheLoop: false,
     });
 
     expect(
@@ -141,6 +143,7 @@ describe("AgentSpecLoader", () => {
         url: "http://localhost:8000/v1",
       }),
       systemPrompt: "You answer from JSON.",
+      humanInTheLoop: false,
     });
     const json = serializer.toJson(agent) as string;
     const loader = new AgentSpecLoader({ runtime: fakeRuntime });
@@ -169,6 +172,7 @@ describe("AgentSpecLoader", () => {
         url: "http://localhost:8000/v1",
       }),
       systemPrompt: "You answer from YAML.",
+      humanInTheLoop: false,
     });
     const yaml = serializer.toYaml(agent) as string;
     const loader = new AgentSpecLoader({ runtime: fakeRuntime });
@@ -190,6 +194,7 @@ describe("AgentSpecLoader", () => {
       name: "Disaggregated Agent",
       llmConfig,
       systemPrompt: "Use the shared model.",
+      humanInTheLoop: false,
     });
     const [mainYaml, referencedYaml] = serializer.toYaml(agent, {
       disaggregatedComponents: [llmConfig],
@@ -220,6 +225,7 @@ describe("AgentSpecLoader", () => {
         url: "http://localhost:8000/v1",
       }),
       systemPrompt: "You answer from a component.",
+      humanInTheLoop: false,
     });
     const loader = new AgentSpecLoader({ runtime: fakeRuntime });
 

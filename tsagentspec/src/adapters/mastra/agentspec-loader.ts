@@ -33,6 +33,7 @@ export type AgentSpecLoaderOptions<
   deserializer?: AgentSpecDeserializer;
 };
 
+/** Loads serialized Agent Spec Agent components into Mastra runtime agents. */
 export class AgentSpecLoader<TAgent = unknown, TTool = unknown> {
   private readonly deserializer: AgentSpecDeserializer;
   private readonly converter: AgentSpecToMastraConverter<TAgent, TTool>;
@@ -43,6 +44,7 @@ export class AgentSpecLoader<TAgent = unknown, TTool = unknown> {
     this.converter = new AgentSpecToMastraConverter(conversionOptions);
   }
 
+  /** Load Agent Spec JSON into a Mastra agent or referenced-component registry. */
   loadJson(
     json: string,
     options: AgentSpecReferencedComponentsOptions,
@@ -60,6 +62,7 @@ export class AgentSpecLoader<TAgent = unknown, TTool = unknown> {
     return this.loadDeserialized(this.deserializer.fromJson(json, options), options);
   }
 
+  /** Load Agent Spec YAML into a Mastra agent or referenced-component registry. */
   loadYaml(
     yaml: string,
     options: AgentSpecReferencedComponentsOptions,
@@ -77,6 +80,7 @@ export class AgentSpecLoader<TAgent = unknown, TTool = unknown> {
     return this.loadDeserialized(this.deserializer.fromYaml(yaml, options), options);
   }
 
+  /** Load a serialized Agent Spec dictionary into a Mastra agent or registry. */
   loadDict(
     dict: SerializedDict | DisaggregatedComponentsDict,
     options: AgentSpecReferencedComponentsOptions,
@@ -97,6 +101,7 @@ export class AgentSpecLoader<TAgent = unknown, TTool = unknown> {
     );
   }
 
+  /** Load an Agent Spec component or referenced-component map. */
   loadComponent(component: ComponentBase): TAgent;
 
   loadComponent(component: Record<string, ComponentBase>): ComponentsRegistry;

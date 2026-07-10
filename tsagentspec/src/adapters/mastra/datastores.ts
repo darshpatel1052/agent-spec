@@ -2,16 +2,18 @@ import type {
   InMemoryCollectionDatastore,
   OracleDatabaseDatastore,
   PostgresDatabaseDatastore,
-  TlsPostgresDatabaseConnectionConfig,
 } from "../../datastores/index.js";
-import { UnsupportedMastraDatastoreError } from "./errors.js";
+import {
+  InvalidMastraDatastoreConfigError,
+  UnsupportedMastraDatastoreError,
+  UnsupportedMastraDatastoreFeatureError,
+} from "./errors.js";
 import type {
   AgentSpecMastraDatastore,
   MastraDatastoreTarget,
   MastraDatastoreTargetOptions,
   MastraInMemoryDatastoreTarget,
   MastraPostgresDatastoreTarget,
-  MastraPostgresSslTarget,
   MastraPostgresStoreConfig,
 } from "./types.js";
 
@@ -60,10 +62,7 @@ export const resolvePostgresDatastore = (
   // open sockets, run migrations, or require the Mastra provider package.
   const config: MastraPostgresStoreConfig = {
     id,
-    connectionString: connection.url,
-    user: connection.user,
-    password: connection.password,
-    ssl: resolvePostgresSslTarget(connection),
+    connectionString: resolvePostgresConnectionString(connection),
     ...storageRuntimeOptions(options),
   };
 
@@ -77,20 +76,71 @@ export const resolvePostgresDatastore = (
   };
 };
 
-const resolvePostgresSslTarget = (
-  connection: TlsPostgresDatabaseConnectionConfig,
-): MastraPostgresSslTarget => {
-  if (connection.sslmode === "disable") {
-    return false;
+const resolvePostgresConnectionString = (
+  connection: PostgresDatabaseDatastore["connectionConfig"],
+): string => {
+  if (connection.sslmode === "allow" || connection.sslmode === "prefer") {
+    throw new UnsupportedMastraDatastoreFeatureError(
+      `PostgresDatabaseDatastore.connectionConfig.sslmode='${connection.sslmode}'`,
+    );
   }
 
-  return {
-    mode: connection.sslmode,
-    ...(connection.sslcert ? { certPath: connection.sslcert } : {}),
-    ...(connection.sslkey ? { keyPath: connection.sslkey } : {}),
-    ...(connection.sslrootcert ? { rootCertPath: connection.sslrootcert } : {}),
-    ...(connection.sslcrl ? { crlPath: connection.sslcrl } : {}),
-  };
+  let connectionUrl: URL;
+  try {
+    connectionUrl = new URL(connection.url);
+  } catch {
+    throw new InvalidMastraDatastoreConfigError(
+      "PostgresDatabaseDatastore.connectionConfig.url must be a valid PostgreSQL URL.",
+    );
+  }
+
+  if (connectionUrl.protocol !== "postgres:" && connectionUrl.protocol !== "postgresql:") {
+    throw new InvalidMastraDatastoreConfigError(
+      "PostgresDatabaseDatastore.connectionConfig.url must use the postgres or postgresql protocol.",
+    );
+  }
+
+  if (connection.sslcrl || connectionUrl.searchParams.has("sslcrl")) {
+    throw new UnsupportedMastraDatastoreFeatureError(
+      "PostgresDatabaseDatastore.connectionConfig.sslcrl",
+    );
+  }
+
+  connectionUrl.username = encodePostgresCredential(connection.user);
+  connectionUrl.password = encodePostgresCredential(connection.password);
+  connectionUrl.searchParams.set("sslmode", connection.sslmode);
+
+  if (connection.sslmode === "disable") {
+    connectionUrl.searchParams.delete("uselibpqcompat");
+  } else {
+    connectionUrl.searchParams.set("uselibpqcompat", "true");
+  }
+
+  setPostgresUrlParameter(connectionUrl, "sslcert", connection.sslcert);
+  setPostgresUrlParameter(connectionUrl, "sslkey", connection.sslkey);
+  setPostgresUrlParameter(connectionUrl, "sslrootcert", connection.sslrootcert);
+
+  return connectionUrl.toString();
+};
+
+const encodePostgresCredential = (value: string): string => {
+  try {
+    return encodeURIComponent(value);
+  } catch {
+    throw new InvalidMastraDatastoreConfigError(
+      "PostgresDatabaseDatastore credentials must be valid Unicode strings.",
+    );
+  }
+};
+
+const setPostgresUrlParameter = (
+  url: URL,
+  name: "sslcert" | "sslkey" | "sslrootcert",
+  value: string | undefined,
+): void => {
+  if (value) {
+    url.searchParams.set(name, value);
+  }
 };
 
 const storageRuntimeOptions = (

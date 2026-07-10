@@ -26,22 +26,9 @@ export type MastraInMemoryStoreConfig = {
   id: string;
 };
 
-export type MastraPostgresSslTarget =
-  | false
-  | {
-      mode: "allow" | "prefer" | "require" | "verify-ca" | "verify-full";
-      certPath?: string;
-      keyPath?: string;
-      rootCertPath?: string;
-      crlPath?: string;
-    };
-
 export type MastraPostgresStoreConfig = {
   id: string;
   connectionString: string;
-  user: string;
-  password: string;
-  ssl: MastraPostgresSslTarget;
   schemaName?: string;
   disableInit?: boolean;
 };

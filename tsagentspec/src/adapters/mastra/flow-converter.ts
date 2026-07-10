@@ -18,6 +18,7 @@ import { defaultMastraToolResolver } from "./tool.js";
 import { propertiesToMastraJsonSchema } from "./tool.js";
 import { planLinearMastraFlow } from "./flow-planner.js";
 
+/** Converts supported linear Agent Spec Flows into Mastra workflows. */
 export class AgentSpecFlowToMastraWorkflowConverter<
   TWorkflow = unknown,
   TStep = unknown,
@@ -43,6 +44,7 @@ export class AgentSpecFlowToMastraWorkflowConverter<
     this.options = options;
   }
 
+  /** Convert a supported linear Agent Spec Flow into a Mastra workflow. */
   convert(flow: Flow): TWorkflow {
     const plan = planLinearMastraFlow(flow);
     let workflow = this.runtime.createWorkflow({
